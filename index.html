@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EarthMC Town Analytics</title>
     <link rel="stylesheet" href="styles/styles.css">
+
+    <!-- General SEO -->
+    <meta name="description" content="Analyze EarthMC town residents with our interactive heatmap and sorting options.">
+    <meta name="keywords" content="EarthMC, Town Analytics, Minecraft, Heatmap, Residents, Nation">
+    <meta name="author" content="Mantas Statkevicius">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="EarthMC Town Analytics">
+    <meta property="og:description" content="Analyze EarthMC town residents with our interactive heatmap and sorting options.">
+    <meta property="og:image" content="https://stkvs.com/assets/ms-logo-main.png">
+    <meta property="og:url" content="https://resident-tracker.vercel.app">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="assets/image.png">
+    <meta name="twitter:title" content="EarthMC Town Analytics">
+    <meta name="twitter:description" content="Analyze EarthMC town residents with our interactive heatmap and sorting options.">
+    <meta name="twitter:image" content="https://stkvs.com/assets/ms-logo-main.png">
+    <meta name="twitter:site" content="@MantasStkvs">
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-7EYSMHVY80"></script>
@@ -181,6 +200,10 @@
         }
 
         searchButton.addEventListener("click", () => {
+            if (chartInstance !== null) {
+            chartInstance.destroy();
+            chartInstance = null;
+            }
             townInfo(searchInput.value);
         });
 
