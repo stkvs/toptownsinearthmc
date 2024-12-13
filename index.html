@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EarthMC Town Analytics</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <div class="chart">
+        <canvas id="residentChart"></canvas>
+    </div>
+
+    <section>
+        <div class="container">
+            <h1>EarthMC Town Analytics</h1>
+            <p>Search for a Nation and it will create a graph of the Nations town residents as a heatmap.</p>
+            <p>Sort it by Resident or Alphatbetically (Town) to display the data differently.</p>
+            <em>Note: If you use this platform too quickly, the API will ratelimit you so, <strong>DONT SPAM</strong></em>
+            <div class="search-container">
+                <h4>Nation:</h4>
+                <span><input class="input" type="text" id="nation"><button id="search">Search</button></span>
+            </div>
+            <h4>Sort By:</h4>
+            <div class="sorts">
+                <button class="sortbyres">Resident</button>
+                <button class="sortbytown">Town</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let data = {};
+
+        const searchButton = document.getElementById("search");
+        const searchInput = document.getElementById("nation");
+
+        const sortByResident = document.querySelector(".sortbyres");
+        const sortByTown = document.querySelector(".sortbytown");
+
+        const apiURL = `https://api.earthmc.net/v2/aurora`;
+
+        async function fetchNationsTowns(nation) {
+            return fetch(`${apiURL}/nations/${nation}`)
+                .then(response => response.json())
+                .then(data => data.towns);
+        }
+
+        async function getResNum(town) {
+            return fetch(`${apiURL}/towns/${town}`)
+                .then(response => response.json())
+                .then(data => data.stats.numResidents);
+        }
+
+        function townInfo(input) {
+            nation = fetchNationsTowns(input);
+            nation.then(towns => {
+                const promises = towns.map(town => 
+                getResNum(town).then(resNum => {
+                    data[town] = resNum;
+                }).catch(() => {
+                    data[town] = 0;
+                })
+                );
+
+                Promise.all(promises).then(() => {
+                console.log(data);
+                const keys = Object.keys(data);
+                const values = Object.values(data);
+
+                console.log("Keys:", keys);
+                console.log("Values:", values);
+
+                createGraph(data);
+                });
+            });
+        }
+
+        let chartInstance = null;
+
+        if (chartInstance == null) {
+            sortByResident.disabled = true;
+            sortByTown.disabled = true;
+        }
+
+        function createGraph(data) {
+            sortByResident.disabled = false;
+            sortByTown.disabled = false;
+
+            const ctx = document.getElementById('residentChart');
+            const totalResidents = Object.values(data).reduce((acc, val) => acc + val, 0);
+            ctx.height = totalResidents * 5;
+
+            if (chartInstance !== null) {
+            chartInstance.destroy();
+            }
+
+            const maxResidents = Math.max(...Object.values(data));
+            const minResidents = Math.min(...Object.values(data));
+
+            const backgroundColors = Object.values(data).map(value => {
+            const ratio = (value - minResidents) / (maxResidents - minResidents);
+            const hue = (1 - ratio) * 240; // 240 is blue, 0 is red
+            return `hsla(${hue}, 100%, 50%, 0.6)`;
+            });
+
+            const borderColors = backgroundColors.map(color => color.replace('0.6', '1'));
+
+            chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{
+                    label: 'Number of Residents',
+                    data: Object.values(data),
+                    borderWidth: 1,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    barPercentage: 0.9, // Adjusted to reduce excessive gaps
+                    categoryPercentage: 1.0 // Maximize space utilization
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal bars
+                maintainAspectRatio: false, // Allow chart to expand freely
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'white'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false,
+                            color: 'white'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'white'
+                        }
+                    }
+                }
+            }
+        });
+        }
+
+        function sortGraph(sort) {
+            const sortedData = {};
+
+            if (sort == "resident") {
+                Object.entries(data).sort((a, b) => b[1] - a[1]).forEach(([key, value]) => {
+                    sortedData[key] = value;
+                });
+            } else if (sort == "town") {
+                Object.entries(data).sort((a, b) => a[0].localeCompare(b[0])).forEach(([key, value]) => {
+                    sortedData[key] = value;
+                });
+            }
+
+            createGraph(sortedData);
+        }
+
+        searchButton.addEventListener("click", () => {
+            townInfo(searchInput.value);
+        });
+
+        sortByResident.addEventListener("click", () => {
+            sortGraph("resident");
+        });
+
+        sortByTown.addEventListener("click", () => {
+            sortGraph("town");
+        });
+    </script>
+</body>
+</html>
